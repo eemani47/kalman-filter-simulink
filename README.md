@@ -29,28 +29,28 @@ and fuses them using prediction + correction steps to give a stable estimate.
 
 i divided everything into 3 subsystems:
 
-### 🔹 true motion generator
+### true motion generator
 
 this just gives the ground truth roll angle using a sine wave.  
 it’s what the kalman filter is supposed to estimate.
 
 ---
 
-### 🔹 imu sensor model
+###  imu sensor model
 
 this part simulates the actual sensors — gyro and accelerometer.
 
 - the gyro is created by differentiating the true roll and adding noise  
-- accel values are generated using `accY = -g*sin(roll)`, `accZ = -g*cos(roll)` with noise  
+- accel values are generated using `accY = g*sin(roll)`, `accZ = g*cos(roll)` with noise  
 - then i use `atan2` to convert them to roll angle again
 
 here’s what the model looks like:
 
-![simulink model](model_structure.png)
+![simulink model](simulink_model.png)
 
 ---
 
-### 🔹 kalman filter
+###  kalman filter
 
 this is the main logic.  
 it uses only blocks — no code — and follows the standard kalman update equations:
@@ -70,14 +70,11 @@ i used unit delay blocks to store `x_prev` and `P_prev`, and constants for `Q`, 
 
 ## output
 
-this is the scope output comparing:
 
-- true roll (green)
-- accel-only roll (blue, very noisy)
-- gyro-only roll (yellow, drifts over time)
-- kalman estimate (red, smooth and accurate)
 
-![kalman output scope](scope_output.png)
+![Plot_1](Plot_1.png)
+![Plot_2](Plot_2.png)
+![Plot_3](Plot_3.png)
 
 you can see how the kalman filter starts following the gyro, but then corrects itself using accel input to stay near the true roll angle without drifting.
 
@@ -86,17 +83,17 @@ you can see how the kalman filter starts following the gyro, but then corrects i
 ## files included
 
 - `kalman_filter_1d.slx` – the simulink project  
-- `model_structure.png` – snapshot of the simulink block layout  
+- `simulink_model.png`  
 - `scope_output.png` – the scope plot  
-- `imu_data_placeholder.csv` – placeholder for real data (optional)
+
 
 ---
 
-## extras
+## future
 
 this can be extended to:
 - use real imu data from a phone using `From Workspace` blocks
 - move to 3d by adding pitch/yaw and using ekf
 - integrate into real-time control systems like balancing robots or underwater vehicles
 
-i’ll probably try the real data part later.
+
