@@ -1,83 +1,102 @@
-# kalman-filter-simulink
-1D Kalman Filter for Roll Estimation in Simulink
+# 1D Kalman Filter for Roll Angle Estimation – Simulink
 
 
- 1D Kalman Filter for Roll Angle Estimation in Simulink
 
-This project implements a 1D Kalman Filter for estimating the **roll angle** using **gyroscope** and **accelerometer** data. The entire system is modeled in **Simulink using only block-level components** — no MATLAB Function blocks are used.
+this is a simulink project i built to estimate roll angle using a 1d kalman filter. i didn’t use any matlab function blocks — everything’s done using basic simulink blocks like sum, gain, unit delay, etc.
 
-It’s designed to be both educational and technically accurate, showcasing how real-time sensor fusion can be done in a clean, modular way.
+the system fuses data from a simulated accelerometer and gyroscope to give a better estimate of the actual roll angle. the project is structured using clean subsystems and scope comparisons to show how the kalman filter performs.
 
 ---
 
- Overview
+## how it works
 
-The Kalman Filter fuses:
-- Angular velocity from the **gyroscope**
-- Tilt estimate from the **accelerometer**
+i made a sine wave as the ground truth roll angle, then calculated:
 
-to produce a smooth and accurate roll angle estimate, even in the presence of noisy measurements and gyro drift.
+- its derivative to simulate a gyroscope (with added noise)
+- acceleration values from gravity projection using `sin` and `cos` (also with noise)
 
----
+then i used `atan2(accY, accZ)` to estimate the roll from accel.
 
- System Structure
+finally, the kalman filter takes both:
+- the noisy gyro value (angular velocity)
+- the noisy accel estimate (tilt angle)
 
-The project is divided into **three major subsystems**:
-
- 1. `True Motion Generator`
-- Simulates a known ground-truth roll angle using a sine wave.
-- Provides reference for comparison.
-
- 2. `IMU Sensor Model`
-- Simulates a noisy gyroscope using the derivative of the roll angle.
-- Simulates accelerometer outputs (accY, accZ) using gravity projection based on roll.
-- Adds Gaussian noise to both gyro and accel.
-- Computes an accelerometer-based roll angle using the `atan2(accY, accZ)` method.
-
- 3. `Kalman Filter`
-- Takes in `gyro_measured`, `accY_noisy`, and `accZ_noisy`.
-- Computes the accel-based measurement `z` using `atan2`.
-- Implements prediction and update steps using:
-  - Kalman Gain `K = P / (P + R)`
-  - State estimate update: `x = x_pred + K(z - x_pred)`
-  - Covariance update: `P = (1 - K) * P_pred`
-
-All blocks are standard Simulink components (`Sum`, `Gain`, `Unit Delay`, etc.)
+and fuses them using prediction + correction steps to give a stable estimate.
 
 ---
 
- Results
+## system structure
 
-The system is visualized using a multi-input Scope that compares:
+i divided everything into 3 subsystems:
 
-- True roll (ground truth)
-- Gyro-only integration (shows drift over time)
-- Accelerometer-only angle (noisy but drift-free)
-- Final Kalman estimate (smooth, accurate)
+### 🔹 true motion generator
 
-The Kalman estimate closely follows the true roll, correcting gyro drift using the accelerometer's long-term stability, while filtering out accelerometer noise using gyro data.
+this just gives the ground truth roll angle using a sine wave.  
+it’s what the kalman filter is supposed to estimate.
 
 ---
 
- Files Included
+### 🔹 imu sensor model
 
-- `kalman_filter_1d.slx` – Main Simulink project file
-- `model_structure.png` – Screenshot of block diagram and subsystems
-- `scope_output.png` – Example scope output showing signal comparison
+this part simulates the actual sensors — gyro and accelerometer.
 
----
+- the gyro is created by differentiating the true roll and adding noise  
+- accel values are generated using `accY = -g*sin(roll)`, `accZ = -g*cos(roll)` with noise  
+- then i use `atan2` to convert them to roll angle again
 
- Notes
+here’s what the model looks like:
 
-- The simulation is built for a fixed-step system (e.g., 0.01s)
-- Real IMU data can be imported via `From Workspace` blocks using resampled time series.
-- Project is organized with modular subsystems to maintain clarity and scalability.
+![simulink model](model_structure.png)
 
 ---
 
- Future Directions
+### 🔹 kalman filter
 
-This project can be extended to:
-- Use real-time IMU data from a phone or microcontroller
-- Expand to 2D or 3D orientation using Extended Kalman Filter (EKF)
-- Integrate with a control system (e.g., inverted pendulum, drone, robot)
+this is the main logic.  
+it uses only blocks — no code — and follows the standard kalman update equations:
+
+- **predict**:  
+  - `x_pred = x_prev + dt * gyro_measured`  
+  - `P_pred = P_prev + Q`
+
+- **correct**:  
+  - `K = P_pred / (P_pred + R)`  
+  - `x_est = x_pred + K*(z - x_pred)`  
+  - `P = (1 - K) * P_pred`
+
+i used unit delay blocks to store `x_prev` and `P_prev`, and constants for `Q`, `R`, and `dt`.
+
+---
+
+## output
+
+this is the scope output comparing:
+
+- true roll (green)
+- accel-only roll (blue, very noisy)
+- gyro-only roll (yellow, drifts over time)
+- kalman estimate (red, smooth and accurate)
+
+![kalman output scope](scope_output.png)
+
+you can see how the kalman filter starts following the gyro, but then corrects itself using accel input to stay near the true roll angle without drifting.
+
+---
+
+## files included
+
+- `kalman_filter_1d.slx` – the simulink project  
+- `model_structure.png` – snapshot of the simulink block layout  
+- `scope_output.png` – the scope plot  
+- `imu_data_placeholder.csv` – placeholder for real data (optional)
+
+---
+
+## extras
+
+this can be extended to:
+- use real imu data from a phone using `From Workspace` blocks
+- move to 3d by adding pitch/yaw and using ekf
+- integrate into real-time control systems like balancing robots or underwater vehicles
+
+i’ll probably try the real data part later.
