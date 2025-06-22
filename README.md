@@ -62,7 +62,6 @@ The Kalman estimate closely follows the true roll, correcting gyro drift using t
  Files Included
 
 - `kalman_filter_1d.slx` – Main Simulink project file
-- `imu_data_placeholder.csv` – (Optional) for integrating real IMU data
 - `model_structure.png` – Screenshot of block diagram and subsystems
 - `scope_output.png` – Example scope output showing signal comparison
 
